@@ -20,7 +20,7 @@ function App() {
 }
 
 function Posts() {
-  const {data, isLoading, error} = useQuery({queryKey: ['posts'], queryFn: getter });
+  const {data, isLoading, error} = useQuery({queryKey: ['posts'], queryFn: getter , refetchInterval: 10 * 1000});
 
   if(error){
     return <div>
