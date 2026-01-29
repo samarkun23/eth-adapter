@@ -1,36 +1,75 @@
-import { createPublicClient, http } from 'viem'
+import { createConfig, http, injected, useAccount, useBalance, useConnect, useConnectors, useSendTransaction, useTransaction, WagmiProvider } from 'wagmi'
 import './App.css'
-import { mainnet } from 'viem/chains'
-import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+import { base, mainnet } from 'wagmi/chains'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+const queryClient = new QueryClient()
 
-async function getBalanc() {
-  const client = createPublicClient({
-    chain: mainnet,
-    transport: http(),
-  })
-  const res = await client.getBalance({ address: "0x7D5f294529F53a7aF4e71EBbec9ccF1f1052D1a6" })
+export const config = createConfig({
+  chains: [mainnet],
+  connectors: [
+    injected()
+  ],
+  transports: {
+    [mainnet.id]: http(),
+    [base.id]: http()
+  }
+})
 
-  return res.toString();
-}
-
-const queryClient = new QueryClient();
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Todos />
-    </QueryClientProvider>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <WalletConnector />
+        <EthSend />
+        <MyAddress />
+      </QueryClientProvider>
+    </WagmiProvider>
   )
 
 }
 
-function Todos() {
-  const query = useQuery({ queryKey: ['res'], queryFn: getBalanc, refetchInterval: 10 * 1000 })
+function EthSend() {
+  const {data: hash, sendTransaction} = useTransaction()
+
+  function sendEth() {
+    sendTransaction({
+      to: document.getElementById('address').value,
+      value: 100000000000000000 // 17 0s = 0.1 ETH
+    })
+  }
 
   return <div>
-    Balance: {query.data}
+    <input id='address' type="text" placeholder='address...' />
+    <button onClick={() => sendEth()}>send 0.1 ETH</button>
   </div>
 }
+
+function MyAddress() {
+  const { address } = useAccount()
+  const balance = useBalance({ address })
+
+  return <div> 
+    {address} <br />
+    {balance?.data?.formatted}
+  </div>
+}
+
+function WalletConnector() {
+  const { connectors, connect} = useConnect()
+  return connectors.map((connector) => (
+    <button key={connector.uid} onClick={() => connect({ connector })}>
+      {connector.name}
+    </button>
+  ))
+}
+
+// function ETHSend() {
+//   return <div>
+//     <input type="text" placeholder='Address...' />
+//     <button>Send 0.1 ETH</button>
+//   </div>
+// }
 
 
 
